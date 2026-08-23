@@ -129,3 +129,8 @@ kernel/configs/android-*.cfg
 #Ignoring Android.bp link file
 #
 Android.bp
+
+# Build output and external tooling (not part of kernel source)
+/out/
+/KernelSU-Next/
+/nethunter-patches/
