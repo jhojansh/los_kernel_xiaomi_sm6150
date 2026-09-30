@@ -1,0 +1,90 @@
+name: NetHunter Build
+
+# Compila el kernel AGNI Reborn + NetHunter + DroidSpaces + KernelSU/SUSFS + NoMount
+# y publica el ZIP flasheable (AnyKernel3) como Release descargable desde el celular.
+# Se lanza a mano: pestaña Actions -> "NetHunter Build" -> Run workflow.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependencias y toolchains
+        run: |
+          sudo apt update -y
+          sudo apt install -y bc cpio flex bison git python-is-python3 tar perl wget curl lz4 libssl-dev zip
+
+          mkdir clang && cd clang
+          curl -LO https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman
+          chmod +x antman
+          ./antman -S
+          ./antman --patch=glibc
+          cd ..
+
+          git clone --depth=1 -b main https://github.com/greenforce-project/gcc-arm64 gcc64
+          git clone --depth=1 -b main https://github.com/greenforce-project/gcc-arm gcc32
+
+          echo "BUILD_TIME=$(TZ=America/Bogota date '+%d%m%Y-%H%M')" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=\"$(TZ=America/Bogota date '+%b %d %Y')\"" >> "$GITHUB_ENV"
+
+      # Los symlinks (drivers/kernelsu, fs/nomount) y los cambios en Kconfig/Makefile
+      # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
+      - name: KernelSU + NoMount
+        run: |
+          git clone --depth=1 -b main https://github.com/manipvlator/KernelSU KernelSU
+          git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
+          test -e drivers/kernelsu/Makefile
+          test -e fs/nomount/Makefile || ls fs/nomount/
+
+      - name: Compilar
+        run: |
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
+          export ARCH=arm64
+          export KBUILD_BUILD_USER=jhojansh
+          export KBUILD_BUILD_HOST=NetHunter
+          export CFLAGS_EXTRA="-DBUILD_DATE=$BUILD_DATE"
+
+          make O=out ARCH=arm64 vendor/sweet_defconfig
+          scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/nethunter_defconfig
+          make O=out ARCH=arm64 olddefconfig
+
+          # Verificacion: si algun simbolo clave no quedo en y, fallar antes de compilar
+          for s in MAC80211 RTL8XXXU RTW88 RTW88_USB RTW88_8812AU RTW88_8821CU PID_NS USER_NS SYSVIPC KSU; do
+            grep -q "^CONFIG_$s=y" out/.config || { echo "FALTA CONFIG_$s"; exit 1; }
+          done
+
+          make -j"$(nproc --all)" O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=clang \
+            CLANG_TRIPLE="$GITHUB_WORKSPACE/clang/bin/aarch64-linux-gnu-" \
+            CROSS_COMPILE="$GITHUB_WORKSPACE/gcc64/bin/aarch64-elf-" \
+            CROSS_COMPILE_ARM32="$GITHUB_WORKSPACE/gcc32/bin/arm-none-eabi-"
+
+          cp out/.config out/sweet_nethunter_config.txt
+
+      - name: Empaquetar AnyKernel3
+        run: |
+          git clone --depth=1 -b reforge https://github.com/manipvlator/Anykernel3.git AnyKernel3
+          cp out/arch/arm64/boot/{Image.gz,dtbo.img,dtb.img} AnyKernel3/
+          ZIP="sweet-nethunter-droidspaces-${{ github.ref_name }}-${BUILD_TIME}.zip"
+          (cd AnyKernel3 && zip -r9 "../$ZIP" . -x ".git/*" "README.md")
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ env.BUILD_TIME }}
+          name: NetHunter ${{ github.ref_name }} (${{ env.BUILD_TIME }})
+          body: |
+            Kernel AGNI Reborn + NetHunter + DroidSpaces + KernelSU/SUSFS + NoMount
+            Rama: ${{ github.ref_name }} — commit ${{ github.sha }}
+            Flashear con adb sideload desde el recovery.
+          files: |
+            ${{ env.ZIP }}
+            out/sweet_nethunter_config.txt
