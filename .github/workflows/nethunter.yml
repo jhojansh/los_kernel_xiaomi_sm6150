@@ -2,10 +2,17 @@ name: NetHunter Build
 
 # Compila el kernel AGNI Reborn + NetHunter + DroidSpaces + KernelSU/SUSFS + NoMount
 # y publica el ZIP flasheable (AnyKernel3) como Release descargable desde el celular.
-# Se lanza a mano: pestaña Actions -> "NetHunter Build" -> Run workflow.
+# Se lanza solo al hacer push a una rama sweet-nethunter-*, o a mano desde
+# Actions -> "NetHunter Build" -> Run workflow (el boton solo aparece si esta
+# rama es la rama por defecto del repo).
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'sweet-nethunter-*'
+    paths-ignore:
+      - '**.md'
 
 permissions:
   contents: write
