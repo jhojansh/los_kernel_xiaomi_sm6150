@@ -302,19 +302,23 @@ static void msm_restart_prepare(const char *cmd)
 
 	if (qpnp_pon_check_hard_reset_stored()) {
 		/* Set warm reset as true when device is in dload mode */
-		if (get_dload_mode() ||
+		if (get_dload_mode() || in_panic ||
 			((cmd != NULL && cmd[0] != '\0') &&
 			!strcmp(cmd, "edl")))
 			need_warm_reset = true;
 	} else {
-		need_warm_reset = (get_dload_mode() ||
+		need_warm_reset = (get_dload_mode() || in_panic ||
 				(cmd != NULL && cmd[0] != '\0'));
 	}
 
 	if (force_warm_reboot)
 		pr_info("Forcing a warm reset of the system\n");
 
-	/* Hard reset the PMIC unless memory contents must be maintained. */
+	/*
+	 * Hard reset the PMIC unless memory contents must be maintained.
+	 * A panic needs a warm reset so that ramoops/pstore survives it
+	 * (CONFIG_QCOM_DLOAD_MODE is off, so get_dload_mode() is never true).
+	 */
 	if (force_warm_reboot || need_warm_reset)
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
 	else
