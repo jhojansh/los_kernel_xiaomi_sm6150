@@ -599,7 +599,7 @@
 		};
 
 		ramoops: ramoops@b0000000 {
-			compatible = "removed-dma-pool", "ramoops";
+			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0xb0000000 0 0x400000>;
 			record-size = <0x00200000>;
@@ -663,7 +663,8 @@
 			compatible = "ramoops";
 			reg = <0x0 0x9d800000 0x0 0x00400000>;
 
-			record-size = <0x200000>;
+			record-size = <0x100000>;
+			console-size = <0x100000>;
 			pmsg-size = <0x200000>;
 			ecc-size = <16>;
 			max-reason = <4>;
