@@ -87,6 +87,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ env.BUILD_TIME }}
+          target_commitish: ${{ github.sha }}
           name: NetHunter ${{ github.ref_name }} (${{ env.BUILD_TIME }})
           body: |
             Kernel AGNI Reborn + NetHunter + DroidSpaces + KernelSU/SUSFS + NoMount
