@@ -46,7 +46,10 @@ jobs:
       # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
       - name: KernelSU + NoMount
         run: |
-          git clone --depth=1 -b main https://github.com/manipvlator/KernelSU KernelSU
+          # Fijado a un commit concreto: manipvlator reescribe main sin aviso y un
+          # cambio de controlador rompe el root. Actualizar este hash a mano.
+          git clone https://github.com/manipvlator/KernelSU KernelSU
+          git -C KernelSU checkout c3d1a59ee33328bba6f03d4114c7decc18a84b28
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
           test -e drivers/kernelsu/Makefile
           test -e fs/nomount/Makefile || ls fs/nomount/
@@ -64,7 +67,7 @@ jobs:
           make O=out ARCH=arm64 olddefconfig
 
           # Verificacion: si algun simbolo clave no quedo en y, fallar antes de compilar
-          for s in MAC80211 RTL8XXXU RTW88 RTW88_USB RTW88_8812AU RTW88_8821CU PID_NS USER_NS SYSVIPC KSU; do
+          for s in MAC80211 RTL8XXXU RTW88 RTW88_USB RTW88_8812AU RTW88_8821CU PID_NS USER_NS SYSVIPC KSU KSU_TAMPER_SYSCALL_TABLE KSU_SUSFS; do
             grep -q "^CONFIG_$s=y" out/.config || { echo "FALTA CONFIG_$s"; exit 1; }
           done
 
