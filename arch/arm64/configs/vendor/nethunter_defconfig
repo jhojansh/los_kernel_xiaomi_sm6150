@@ -30,3 +30,10 @@ CONFIG_IP_SET=y
 CONFIG_KSU=y
 CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
 CONFIG_KSU_SUSFS=y
+
+# MGLRU: keep it compiled in but start with the classic LRU. On this tree the
+# MGLRU active/inactive anon counters drift (Inactive(anon) > MemTotal after a
+# day of uptime) and memory pressure climbs with uptime. Toggling it at runtime
+# through /sys/kernel/mm/lru_gen/enabled hung the phone at boot, so it is
+# disabled at build time instead (lrugen->enabled is set from this at init).
+# CONFIG_LRU_GEN_ENABLED is not set

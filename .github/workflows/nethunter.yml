@@ -70,6 +70,7 @@ jobs:
           for s in MAC80211 RTL8XXXU RTW88 RTW88_USB RTW88_8812AU RTW88_8821CU PID_NS USER_NS SYSVIPC KSU KSU_TAMPER_SYSCALL_TABLE KSU_SUSFS; do
             grep -q "^CONFIG_$s=y" out/.config || { echo "FALTA CONFIG_$s"; exit 1; }
           done
+          if grep -q "^CONFIG_LRU_GEN_ENABLED=y" out/.config; then echo "MGLRU deberia arrancar desactivado"; exit 1; fi
 
           make -j"$(nproc --all)" O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=clang \
             CLANG_TRIPLE="$GITHUB_WORKSPACE/clang/bin/aarch64-linux-gnu-" \
