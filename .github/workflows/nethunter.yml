@@ -48,7 +48,9 @@ jobs:
         run: |
           # Fijado a un commit concreto: manipvlator reescribe main sin aviso y un
           # cambio de controlador rompe el root. Actualizar este hash a mano.
-          git clone https://github.com/manipvlator/KernelSU KernelSU
+          # Se clona de la copia propia (jhojansh/KernelSU): manipvlator borro
+          # este commit de su historial con un force-push.
+          git clone https://github.com/jhojansh/KernelSU KernelSU
           git -C KernelSU checkout c3d1a59ee33328bba6f03d4114c7decc18a84b28
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
           test -e drivers/kernelsu/Makefile
