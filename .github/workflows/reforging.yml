@@ -53,6 +53,11 @@ jobs:
       if: ${{ matrix.build_type == 'KSU' || matrix.build_type == 'KSU-OEM' }}
       run: |
         curl -LSs "https://raw.githubusercontent.com/manipvlator/KernelSU/refs/heads/main/kernel/setup.sh" | bash -s main
+        # Pin KSU_VERSION a 32679 (BakaSU 35229) para que coincida con el manager
+        # disponible mas nuevo (BakaSU 35229); main quedo en 32681 -> BakaSU 35231,
+        # 2 versiones por delante de cualquier manager existente -> no concede root.
+        sed -i 's/^KSU_VERSION := .*/KSU_VERSION := 32679/' KernelSU/kernel/Makefile
+        echo "== KSU_VERSION tras pin =="; grep -E "^KSU_VERSION :=" KernelSU/kernel/Makefile
 
     - name: 📐 OEM Dimension
       if: ${{ matrix.build_type == 'KSU-OEM' }}
