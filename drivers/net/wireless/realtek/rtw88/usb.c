@@ -39,6 +39,8 @@ static void rtw_usb_fill_tx_checksum(struct rtw_usb *rtwusb,
 	rtw_tx_fill_txdesc_checksum(rtwdev, &pkt_info, skb->data);
 }
 
+#define RTW_USB_CONTROL_MSG_RETRY 10
+
 static void rtw_usb_reg_sec(struct rtw_dev *rtwdev, u32 addr, __le32 *data)
 {
 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
@@ -47,6 +49,7 @@ static void rtw_usb_reg_sec(struct rtw_dev *rtwdev, u32 addr, __le32 *data)
 	u16 t_reg = 0x4e0;
 	u8 t_len = 1;
 	int status;
+	int i;
 
 	/* There are three sections:
 	 * 1. on (0x00~0xFF; 0x1000~0x10FF): this section is always powered on
@@ -60,9 +63,13 @@ static void rtw_usb_reg_sec(struct rtw_dev *rtwdev, u32 addr, __le32 *data)
 	if (!reg_on_section)
 		return;
 
-	status = usb_control_msg(udev, usb_sndctrlpipe(udev, 0),
-				 RTW_USB_CMD_REQ, RTW_USB_CMD_WRITE,
-				 t_reg, 0, data, t_len, 500);
+	for (i = 0; i < RTW_USB_CONTROL_MSG_RETRY; i++) {
+		status = usb_control_msg(udev, usb_sndctrlpipe(udev, 0),
+					 RTW_USB_CMD_REQ, RTW_USB_CMD_WRITE,
+					 t_reg, 0, data, t_len, 500);
+		if (status != -EPROTO)
+			break;
+	}
 
 	if (status != t_len && status != -ENODEV)
 		rtw_err(rtwdev, "%s: reg 0x%x, usb write %u fail, status: %d\n",
@@ -75,7 +82,7 @@ static u32 rtw_usb_read(struct rtw_dev *rtwdev, u32 addr, u16 len)
 	struct usb_device *udev = rtwusb->udev;
 	__le32 *data;
 	unsigned long flags;
-	int idx, ret;
+	int idx, ret, i;
 	static int count;
 
 	spin_lock_irqsave(&rtwusb->usb_lock, flags);
@@ -87,9 +94,13 @@ static u32 rtw_usb_read(struct rtw_dev *rtwdev, u32 addr, u16 len)
 
 	data = &rtwusb->usb_data[idx];
 
-	ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
-			      RTW_USB_CMD_REQ, RTW_USB_CMD_READ, addr,
-			      RTW_USB_VENQT_CMD_IDX, data, len, 1000);
+	for (i = 0; i < RTW_USB_CONTROL_MSG_RETRY; i++) {
+		ret = usb_control_msg(udev, usb_rcvctrlpipe(udev, 0),
+				      RTW_USB_CMD_REQ, RTW_USB_CMD_READ, addr,
+				      RTW_USB_VENQT_CMD_IDX, data, len, 1000);
+		if (ret != -EPROTO)
+			break;
+	}
 	if (ret < 0 && ret != -ENODEV && count++ < 4)
 		rtw_err(rtwdev, "read register 0x%x failed with %d\n",
 			addr, ret);
@@ -123,7 +134,7 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 	struct usb_device *udev = rtwusb->udev;
 	unsigned long flags;
 	__le32 *data;
-	int idx, ret;
+	int idx, ret, i;
 	static int count;
 
 	spin_lock_irqsave(&rtwusb->usb_lock, flags);
@@ -137,9 +148,13 @@ static void rtw_usb_write(struct rtw_dev *rtwdev, u32 addr, u32 val, int len)
 
 	*data = cpu_to_le32(val);
 
-	ret = usb_control_msg(udev, usb_sndctrlpipe(udev, 0),
-			      RTW_USB_CMD_REQ, RTW_USB_CMD_WRITE,
-			      addr, 0, data, len, 500);
+	for (i = 0; i < RTW_USB_CONTROL_MSG_RETRY; i++) {
+		ret = usb_control_msg(udev, usb_sndctrlpipe(udev, 0),
+				      RTW_USB_CMD_REQ, RTW_USB_CMD_WRITE,
+				      addr, 0, data, len, 500);
+		if (ret != -EPROTO)
+			break;
+	}
 	if (ret < 0 && ret != -ENODEV && count++ < 4)
 		rtw_err(rtwdev, "write register 0x%x failed with %d\n",
 			addr, ret);
