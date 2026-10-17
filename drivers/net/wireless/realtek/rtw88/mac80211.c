@@ -954,7 +954,8 @@ static void rtw_reconfig_complete(struct ieee80211_hw *hw,
 	mutex_unlock(&rtwdev->mutex);
 }
 
-static int rtw_ops_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+static int __maybe_unused rtw_ops_hw_scan(struct ieee80211_hw *hw,
+			   struct ieee80211_vif *vif,
 			   struct ieee80211_scan_request *req)
 {
 	struct rtw_dev *rtwdev = hw->priv;
@@ -978,7 +979,7 @@ static int rtw_ops_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	return ret;
 }
 
-static void rtw_ops_cancel_hw_scan(struct ieee80211_hw *hw,
+static void __maybe_unused rtw_ops_cancel_hw_scan(struct ieee80211_hw *hw,
 				   struct ieee80211_vif *vif)
 {
 	struct rtw_dev *rtwdev = hw->priv;
@@ -1065,8 +1066,18 @@ const struct ieee80211_ops rtw_ops = {
 	.set_antenna		= rtw_ops_set_antenna,
 	.get_antenna		= rtw_ops_get_antenna,
 	.reconfig_complete	= rtw_reconfig_complete,
+	/*
+	 * RTL8821AU firmware does not advertise FW_FEATURE_SCAN_OFFLOAD, so
+	 * rtw_ops_hw_scan() returns 1 to request a software scan. This kernel's
+	 * backported mac80211 has no hw_scan==1 sw-scan fallback and reports it
+	 * as netlink err 1 / -EPROTO (-71) to userspace. Drop the hw_scan ops so
+	 * mac80211 uses the sw_scan_start/complete path, which works over USB.
+	 * (jhojansh custom fix for Alfa AWUS036ACS scan -71)
+	 */
+#if 0
 	.hw_scan		= rtw_ops_hw_scan,
 	.cancel_hw_scan		= rtw_ops_cancel_hw_scan,
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0)
 	.sta_rc_update		= rtw_ops_sta_rc_update,
 #else
