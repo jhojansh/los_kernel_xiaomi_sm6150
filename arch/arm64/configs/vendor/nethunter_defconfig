@@ -37,3 +37,11 @@ CONFIG_KSU_SUSFS=y
 # through /sys/kernel/mm/lru_gen/enabled hung the phone at boot, so it is
 # disabled at build time instead (lrugen->enabled is set from this at init).
 # CONFIG_LRU_GEN_ENABLED is not set
+
+# DroidSpaces v7 optional features (requirements checker, "OPTIONAL" section):
+# --cpus limits (needs no cgroup_disable=cpu on the cmdline; ours only disables
+# pressure), IPv6 inside --net=nat containers, and --net=macvlan.
+CONFIG_CFS_BANDWIDTH=y
+CONFIG_IP6_NF_NAT=y
+CONFIG_IP6_NF_TARGET_MASQUERADE=y
+CONFIG_MACVLAN=y
