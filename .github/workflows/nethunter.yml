@@ -46,12 +46,11 @@ jobs:
       # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
       - name: KernelSU + NoMount
         run: |
-          # Fijado a un commit concreto: manipvlator reescribe main sin aviso y un
-          # cambio de controlador rompe el root. Actualizar este hash a mano.
-          # Se clona de la copia propia (jhojansh/KernelSU): manipvlator borro
-          # este commit de su historial con un force-push.
-          git clone https://github.com/jhojansh/KernelSU KernelSU
-          git -C KernelSU checkout c3d1a59ee33328bba6f03d4114c7decc18a84b28
+          # KernelSU fijado a manipvlator/KernelSU 1fa12f26 (v3.3.1, "kernel: implement susfs").
+          # Para actualizar: cambiar KSU_PIN por el nuevo hash de main y hacer push.
+          KSU_PIN=1fa12f26f30d4e352144f35157bc9db6e0130c4e
+          git clone https://github.com/manipvlator/KernelSU KernelSU
+          git -C KernelSU checkout "$KSU_PIN"
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
           test -e drivers/kernelsu/Makefile
           test -e fs/nomount/Makefile || ls fs/nomount/
