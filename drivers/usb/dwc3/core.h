@@ -1137,6 +1137,7 @@ struct dwc3 {
 	const char		*hsphy_interface;
 
 	struct work_struct	wakeup_work;
+	struct work_struct	ep_recover_work;
 
 	unsigned		connected:1;
 	unsigned		delayed_status:1;

@@ -40,6 +40,7 @@ static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc, bool remote_wakeup);
 static int dwc3_gadget_wakeup_int(struct dwc3 *dwc);
 static int __dwc3_gadget_start(struct dwc3 *dwc);
 static void dwc3_gadget_disconnect_interrupt(struct dwc3 *dwc);
+static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on);
 
 /**
  * dwc3_gadget_set_test_mode - enables usb2 test modes
@@ -868,6 +869,22 @@ out:
 	return 0;
 }
 
+/*
+ * Soft replug of the gadget. Used after an EndTransfer timeout: the host
+ * session (e.g. MTP) can be left out of sync, and a disconnect/reconnect
+ * forces the host to re-enumerate. Runs in process context without
+ * dwc->lock, because pullup() takes the lock itself.
+ */
+static void dwc3_gadget_ep_recover_work(struct work_struct *w)
+{
+	struct dwc3 *dwc = container_of(w, struct dwc3, ep_recover_work);
+
+	dev_warn(dwc->dev, "EndTransfer timeout: soft replug to resync host\n");
+	dwc3_gadget_pullup(&dwc->gadget, 0);
+	msleep(500);
+	dwc3_gadget_pullup(&dwc->gadget, 1);
+}
+
 static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 {
 	struct dwc3_request		*req;
@@ -881,9 +898,13 @@ static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 	 * linked to the endpoint and are completed later after the gadget
 	 * driver has freed them (use-after-free in dwc3_gadget_giveback).
 	 */
-	if (ret)
+	if (ret) {
 		dev_err(dwc->dev, "%s: EndTransfer failed (%d), giving back requests anyway\n",
 			dep->name, ret);
+		/* don't re-queue while a replug is pending or running (avoids a loop) */
+		if (!work_busy(&dwc->ep_recover_work))
+			schedule_work(&dwc->ep_recover_work);
+	}
 
 	if (dep->number == 1 && dwc->ep0state != EP0_SETUP_PHASE) {
 		unsigned int dir;
@@ -4103,6 +4124,7 @@ int dwc3_gadget_init(struct dwc3 *dwc)
 	dwc->irq_gadget = irq;
 
 	INIT_WORK(&dwc->wakeup_work, dwc3_gadget_wakeup_work);
+	INIT_WORK(&dwc->ep_recover_work, dwc3_gadget_ep_recover_work);
 
 	dwc->ep0_trb = dma_alloc_coherent(dwc->sysdev,
 					  sizeof(*dwc->ep0_trb) * 2,
@@ -4197,6 +4219,7 @@ err0:
 
 void dwc3_gadget_exit(struct dwc3 *dwc)
 {
+	cancel_work_sync(&dwc->ep_recover_work);
 	usb_del_gadget_udc(&dwc->gadget);
 	dwc3_gadget_free_endpoints(dwc);
 	dma_free_coherent(dwc->sysdev, DWC3_BOUNCE_SIZE, dwc->bounce,
