@@ -84,7 +84,8 @@ jobs:
         run: |
           git clone --depth=1 -b reforge https://github.com/manipvlator/Anykernel3.git AnyKernel3
           cp out/arch/arm64/boot/{Image.gz,dtbo.img,dtb.img} AnyKernel3/
-          ZIP="sweet-nethunter-droidspaces-${{ github.ref_name }}-${BUILD_TIME}.zip"
+          SAFE_REF=$(echo "${{ github.ref_name }}" | tr "/" "-")
+          ZIP="sweet-nethunter-droidspaces-${SAFE_REF}-${BUILD_TIME}.zip"
           (cd AnyKernel3 && zip -r9 "../$ZIP" . -x ".git/*" "README.md")
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
 
