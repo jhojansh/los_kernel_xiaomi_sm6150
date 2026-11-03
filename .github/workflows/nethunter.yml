@@ -46,10 +46,11 @@ jobs:
       # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
       - name: KernelSU + NoMount
         run: |
-          # KernelSU fijado a manipvlator/KernelSU 1fa12f26 (v3.3.1, "kernel: implement susfs").
+          # KernelSU fijado al fork jhojansh/KernelSU 1fa12f26 (v3.3.1, "kernel: implement susfs").
+          # manipvlator/KernelSU ya no contiene este commit (main reescrito).
           # Para actualizar: cambiar KSU_PIN por el nuevo hash de main y hacer push.
           KSU_PIN=1fa12f26f30d4e352144f35157bc9db6e0130c4e
-          git clone https://github.com/manipvlator/KernelSU KernelSU
+          git clone https://github.com/jhojansh/KernelSU KernelSU
           git -C KernelSU checkout "$KSU_PIN"
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
           test -e drivers/kernelsu/Makefile
