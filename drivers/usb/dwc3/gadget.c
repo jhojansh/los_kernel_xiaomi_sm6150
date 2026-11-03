@@ -875,8 +875,15 @@ static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 
 	dbg_log_string("START for %s(%d)", dep->name, dep->number);
 	ret = dwc3_stop_active_transfer(dwc, dep->number, true);
+	/*
+	 * If EndTransfer timed out, do not bail out here: the started and
+	 * pending requests must still be given back, otherwise they stay
+	 * linked to the endpoint and are completed later after the gadget
+	 * driver has freed them (use-after-free in dwc3_gadget_giveback).
+	 */
 	if (ret)
-		return;
+		dev_err(dwc->dev, "%s: EndTransfer failed (%d), giving back requests anyway\n",
+			dep->name, ret);
 
 	if (dep->number == 1 && dwc->ep0state != EP0_SETUP_PHASE) {
 		unsigned int dir;
