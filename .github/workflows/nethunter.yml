@@ -46,9 +46,9 @@ jobs:
       # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
       - name: KernelSU + NoMount
         run: |
-          # KernelSU fijado a manipvlator/KernelSU 1fa12f26 (v3.3.1, "kernel: implement susfs").
+          # KernelSU fijado a manipvlator/KernelSU 3f42599f (v3.3.1-32737, main tras SUSFS 2.4.0 de AGNI 2.1).
           # Para actualizar: cambiar KSU_PIN por el nuevo hash de main y hacer push.
-          KSU_PIN=1fa12f26f30d4e352144f35157bc9db6e0130c4e
+          KSU_PIN=3f42599ffdf8f4422b1195b8cbece3f2015970ee
           git clone https://github.com/manipvlator/KernelSU KernelSU
           git -C KernelSU checkout "$KSU_PIN"
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
