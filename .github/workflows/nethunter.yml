@@ -46,11 +46,14 @@ jobs:
       # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
       - name: KernelSU + NoMount
         run: |
-          # KernelSU fijado a manipvlator/KernelSU 3f42599f (v3.3.1-32737, main tras SUSFS 2.4.0 de AGNI 2.1).
-          # Para actualizar: cambiar KSU_PIN por el nuevo hash de main y hacer push.
-          KSU_PIN=3f42599ffdf8f4422b1195b8cbece3f2015970ee
-          git clone https://github.com/manipvlator/KernelSU KernelSU
-          git -C KernelSU checkout "$KSU_PIN"
+          # KernelSU: seguimos manipvlator/KernelSU main (como la AGNI oficial).
+          # Fijar un hash es insostenible: manipvlator hace force-push a main y el
+          # pin queda huerfano (ya paso con 1fa12f26 y con 3f42599). main siempre
+          # trae el driver que pairea con su manager auto-actualizable y SUSFS 2.4.0.
+          # El log de abajo registra que commit/version quedo embebido en cada build.
+          git clone --depth=1 -b main https://github.com/manipvlator/KernelSU KernelSU
+          echo "KernelSU main -> $(git -C KernelSU rev-parse HEAD)"
+          grep -E 'KSU_VERSION :=|KSU_VERSION_TAG :=' KernelSU/kernel/Makefile || true
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
           test -e drivers/kernelsu/Makefile
           test -e fs/nomount/Makefile || ls fs/nomount/
