@@ -31,12 +31,19 @@ CONFIG_KSU=y
 CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
 CONFIG_KSU_SUSFS=y
 
-# MGLRU: keep it compiled in but start with the classic LRU. On this tree the
-# MGLRU active/inactive anon counters drift (Inactive(anon) > MemTotal after a
-# day of uptime) and memory pressure climbs with uptime. Toggling it at runtime
-# through /sys/kernel/mm/lru_gen/enabled hung the phone at boot, so it is
-# disabled at build time instead (lrugen->enabled is set from this at init).
-# CONFIG_LRU_GEN_ENABLED is not set
+# MGLRU: REMOVED entirely (not just disabled). Dejarlo "apagado" con
+# LRU_GEN_ENABLED unset mantenía el código de MGLRU compilado y corriendo en la
+# ruta de reclamo (lru_gen_look_around), corrompiendo los contadores anon/refault
+# que alimentan el PSI. Evidencia de campo (vmstat, 25-nov): PSI memory "full"
+# clavado en ~92% con 1.9 GB libres y SIN actividad real de memoria — pswpin ~0,
+# pgscan_direct 0, pgsteal_direct 0, allocstall 0. Esa presión fantasma hacía que
+# lmkd matara apps (Instagram/YouTube se quedaban en el logo) y, en su extremo,
+# trababa el reclamo en un livelock (pantalla negra, linterna/vibración con
+# retardo, sin auto-reinicio). Al compilar MGLRU fuera, el LRU clásico corre
+# limpio y el PSI deja de mentir. Esto además vuelve innecesaria la tapita de
+# NULL memcg (el NULL-deref en lru_gen_look_around ya no existe), pero la dejamos
+# por seguridad.
+# CONFIG_LRU_GEN is not set
 
 # DroidSpaces v7 optional features (requirements checker, "OPTIONAL" section):
 # --cpus limits (needs no cgroup_disable=cpu on the cmdline; ours only disables
