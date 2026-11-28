@@ -46,13 +46,20 @@ jobs:
       # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
       - name: KernelSU + NoMount
         run: |
-          # KernelSU: seguimos manipvlator/KernelSU main (como la AGNI oficial).
-          # Fijar un hash es insostenible: manipvlator hace force-push a main y el
-          # pin queda huerfano (ya paso con 1fa12f26 y con 3f42599). main siempre
-          # trae el driver que pairea con su manager auto-actualizable y SUSFS 2.4.0.
-          # El log de abajo registra que commit/version quedo embebido en cada build.
-          git clone --depth=1 -b main https://github.com/manipvlator/KernelSU KernelSU
-          echo "KernelSU main -> $(git -C KernelSU rev-parse HEAD)"
+          # KernelSU FIJADO a d86698f (v3.3.1-32739): el ultimo commit compatible
+          # con el SUSFS que trae AGNI 2.1. Rastrear 'main' se rompio cuando
+          # manipvlator lo adelanto a una API de SUSFS mas nueva
+          # (CMD_SUSFS_SET_SUS_PATH_UID_FILTER, susfs_set_sus_path_uid_filter) que
+          # este kernel no tiene. Fijar un SHA tampoco es eterno (force-push/GC lo
+          # pueden borrar), pero d86698f es el build que el usuario ya corre OK.
+          # Se trae por SHA (fetch) en vez de -b main. Para actualizar: cambiar
+          # KSU_PIN por un commit cuyo SUSFS matchee este kernel.
+          KSU_PIN=d86698f95ab8fcb993ebba00f14a9c5842dc40fe
+          git init -q KernelSU
+          git -C KernelSU remote add origin https://github.com/manipvlator/KernelSU
+          git -C KernelSU fetch --depth=1 origin "$KSU_PIN"
+          git -C KernelSU checkout -q "$KSU_PIN"
+          echo "KernelSU pin -> $(git -C KernelSU rev-parse HEAD)"
           grep -E 'KSU_VERSION :=|KSU_VERSION_TAG :=' KernelSU/kernel/Makefile || true
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
           test -e drivers/kernelsu/Makefile
