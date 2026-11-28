@@ -87,7 +87,7 @@ jobs:
         run: |
           git clone --depth=1 -b reforge https://github.com/manipvlator/Anykernel3.git AnyKernel3
           cp out/arch/arm64/boot/{Image.gz,dtbo.img,dtb.img} AnyKernel3/
-          ZIP="sweet-nethunter-droidspaces-${{ github.ref_name }}-${BUILD_TIME}.zip"
+          ZIP="Reforge-KSU-NH-DS-${BUILD_TIME}.zip"
           (cd AnyKernel3 && zip -r9 "../$ZIP" . -x ".git/*" "README.md")
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
 
@@ -96,11 +96,18 @@ jobs:
         with:
           tag_name: build-${{ env.BUILD_TIME }}
           target_commitish: ${{ github.sha }}
-          name: NetHunter ${{ github.ref_name }} (${{ env.BUILD_TIME }})
+          name: Reforge-KSU • NH-DS (${{ env.BUILD_TIME }})
           body: |
-            Kernel AGNI Reborn + NetHunter + DroidSpaces + KernelSU/SUSFS + NoMount
-            Rama: ${{ github.ref_name }} — commit ${{ github.sha }}
-            Flashear con adb sideload desde el recovery.
+            **Reforge-KSU — Edición NH-DS** (NetHunter + DroidSpaces)
+
+            Base AGNI Reborn 2.1 (kernel 4.14) para Redmi Note 10 Pro (sweet).
+            Incluye: KernelSU-Next + SUSFS 2.4.0, NoMount, NetHunter (inyección
+            qcacld + Alfa rtw88/rtl8xxx), DroidSpaces, MGLRU desactivado (fix del
+            PSI fantasma / cuelgues), sin detectores de diagnóstico.
+
+            Variante para uso diario + pentesting + contenedores + gaming.
+            Flashear con adb sideload desde el recovery. Manager: KernelSU-Next.
+            Commit ${{ github.sha }}
           files: |
             ${{ env.ZIP }}
             out/sweet_nethunter_config.txt

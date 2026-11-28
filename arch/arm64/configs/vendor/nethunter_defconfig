@@ -52,20 +52,3 @@ CONFIG_CFS_BANDWIDTH=y
 CONFIG_IP6_NF_NAT=y
 CONFIG_IP6_NF_TARGET_MASQUERADE=y
 CONFIG_MACVLAN=y
-
-# --- DIAGNÓSTICO TEMPORAL: cazar el cuelgue de pantalla-negra ---
-# El softlockup detector con panic ya está activo y NO atrapa este cuelgue,
-# así que no es un CPU girando en bucle: es un deadlock (todo bloqueado
-# esperando un lock). DETECT_HUNG_TASK sí lo caza: si una tarea queda
-# bloqueada (estado D) más de 30s, el kernel panica nombrando la tarea y su
-# backtrace. Ese panic dispara nuestro warm-reset (74d4eae5f), que preserva
-# la RAM y por tanto el log en /sys/fs/pstore/dmesg-ramoops-0; el teléfono se
-# reinicia solo en vez de quedar muerto hasta un reset frío (que borraba la
-# evidencia). DPM_WATCHDOG cubre además el caso de cuelgue en suspend/resume
-# (cargando/en reposo), nombrando el driver que se cuelga al dormir/despertar.
-# QUITAR estos 5 símbolos una vez identificado el culpable.
-CONFIG_DETECT_HUNG_TASK=y
-CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=30
-CONFIG_BOOTPARAM_HUNG_TASK_PANIC=y
-CONFIG_DPM_WATCHDOG=y
-CONFIG_DPM_WATCHDOG_TIMEOUT=60
