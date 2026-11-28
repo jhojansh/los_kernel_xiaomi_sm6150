@@ -44,8 +44,15 @@ jobs:
       # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
       - name: KernelSU + NoMount
         run: |
-          git clone --depth=1 -b main https://github.com/manipvlator/KernelSU KernelSU
-          echo "KernelSU main -> $(git -C KernelSU rev-parse HEAD)"
+          # KernelSU FIJADO a d86698f (v3.3.1-32739): ultimo commit compatible con
+          # el SUSFS de AGNI 2.1. Rastrear 'main' rompio el build cuando manipvlator
+          # lo adelanto a una API de SUSFS mas nueva que este kernel no tiene.
+          KSU_PIN=d86698f95ab8fcb993ebba00f14a9c5842dc40fe
+          git init -q KernelSU
+          git -C KernelSU remote add origin https://github.com/manipvlator/KernelSU
+          git -C KernelSU fetch --depth=1 origin "$KSU_PIN"
+          git -C KernelSU checkout -q "$KSU_PIN"
+          echo "KernelSU pin -> $(git -C KernelSU rev-parse HEAD)"
           grep -E 'KSU_VERSION :=|KSU_VERSION_TAG :=' KernelSU/kernel/Makefile || true
           git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
           test -e drivers/kernelsu/Makefile
