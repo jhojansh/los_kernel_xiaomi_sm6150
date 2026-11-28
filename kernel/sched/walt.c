@@ -128,16 +128,6 @@ unsigned int sysctl_sched_walt_rotate_big_tasks;
 unsigned int walt_rotation_enabled;
 
 /*
- * AGNI dejo estas dos sysctl declaradas (include/linux/sched/sysctl.h) y en la
- * tabla de kernel/sysctl.c (bajo CONFIG_SCHED_WALT) pero borro sus definiciones
- * al apagar WALT. Al reactivar WALT, el linker las pedia (undefined symbol). Se
- * reponen con los defaults estandar de WALT (conservative_pl off; many-wakeup
- * threshold 1000, igual que upstream/Ryzens).
- */
-unsigned int sysctl_sched_conservative_pl;
-unsigned int sysctl_sched_many_wakeup_threshold = 1000;
-
-/*
  * sched_window_stats_policy and sched_ravg_hist_size have a 'sysctl' copy
  * associated with them. This is required for atomic update of those variables
  * when being modifed via sysctl interface.

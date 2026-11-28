@@ -71,7 +71,7 @@ jobs:
           make O=out ARCH=arm64 olddefconfig
 
           # Verificacion: root presente y MGLRU fuera
-          for s in KSU KSU_TAMPER_SYSCALL_TABLE KSU_SUSFS SCHED_WALT SCHED_CORE_CTL CPU_BOOST; do
+          for s in KSU KSU_TAMPER_SYSCALL_TABLE KSU_SUSFS; do
             grep -q "^CONFIG_$s=y" out/.config || { echo "FALTA CONFIG_$s"; exit 1; }
           done
           if grep -q "^CONFIG_LRU_GEN=y" out/.config; then echo "MGLRU deberia estar compilado fuera"; exit 1; fi
@@ -102,11 +102,8 @@ jobs:
 
             Base AGNI Reborn 2.1 (kernel 4.14) para Redmi Note 10 Pro (sweet).
             Incluye: KernelSU-Next + SUSFS 2.4.0, NoMount, MGLRU desactivado (fix
-            del PSI fantasma / cuelgues). SIN NetHunter ni DroidSpaces: más liviana.
-
-            Rendimiento gaming: stack WALT activado (SCHED_WALT + SCHED_CORE_CTL +
-            CPU_BOOST, + SCHED_TUNE de base) — la receta del kernel Spiteful: load
-            tracking de Qualcomm para FPS más estables y respuesta al toque.
+            del PSI fantasma / cuelgues). SIN NetHunter ni DroidSpaces: más liviana,
+            menos drivers y menos capas de cgroup/netfilter.
 
             Variante para uso diario + gaming (root sí, contenedores no).
             Flashear con adb sideload desde el recovery. Manager: KernelSU-Next.

@@ -13,17 +13,3 @@ CONFIG_KSU_SUSFS=y
 # falsa -> lmkd mataba apps y el reclamo se trababa en livelock. Compilado fuera,
 # el LRU clásico corre limpio.
 # CONFIG_LRU_GEN is not set
-
-# --- Stack WALT (receta de rendimiento de Spiteful, un kernel AOSP muy estable
-# del sweet) ---
-# AGNI venía en PELT con WALT apagado. WALT (Window Assisted Load Tracking) es el
-# rastreador de carga de Qualcomm: reacciona más rápido a los picos de un juego,
-# lo que da FPS más estables. Ya está integrado en el scheduler de AGNI (111 refs
-# en fair.c), solo faltaba activarlo. Lo acompañan, como en Spiteful:
-#  - SCHED_CORE_CTL: control dinámico de núcleos online según carga (batería/termia)
-#  - CPU_BOOST: sube frecuencia ante input (toques) = UI y juego más responsivos
-# SCHED_TUNE ya viene activo en la base. Es un cambio real de scheduler: hay que
-# probarlo unos días; si diera inestabilidad, se revierte a la Gaming lean previa.
-CONFIG_SCHED_WALT=y
-CONFIG_SCHED_CORE_CTL=y
-CONFIG_CPU_BOOST=y
