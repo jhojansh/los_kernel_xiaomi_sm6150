@@ -1,0 +1,105 @@
+name: Gaming Build
+
+# Compila la variante "Reforge-KSU AOSP-Gaming": base AGNI Reborn 2.1 + KernelSU/
+# SUSFS + NoMount + MGLRU off, SIN NetHunter ni DroidSpaces. Publica el ZIP
+# flasheable (AnyKernel3) como Release. Se lanza al hacer push a reforge-gaming.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'reforge-gaming'
+    paths-ignore:
+      - '**.md'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependencias y toolchains
+        run: |
+          sudo apt update -y
+          sudo apt install -y bc cpio flex bison git python-is-python3 tar perl wget curl lz4 libssl-dev zip
+
+          mkdir clang && cd clang
+          curl -LO https://raw.githubusercontent.com/Neutron-Toolchains/antman/main/antman
+          chmod +x antman
+          ./antman -S
+          ./antman --patch=glibc
+          cd ..
+
+          git clone --depth=1 -b main https://github.com/greenforce-project/gcc-arm64 gcc64
+          git clone --depth=1 -b main https://github.com/greenforce-project/gcc-arm gcc32
+
+          echo "BUILD_TIME=$(TZ=America/Bogota date '+%d%m%Y-%H%M')" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=\"$(TZ=America/Bogota date '+%b %d %Y')\"" >> "$GITHUB_ENV"
+
+      # Los symlinks (drivers/kernelsu, fs/nomount) y los cambios en Kconfig/Makefile
+      # ya estan commiteados en la rama; solo falta traer el codigo de cada proyecto.
+      - name: KernelSU + NoMount
+        run: |
+          git clone --depth=1 -b main https://github.com/manipvlator/KernelSU KernelSU
+          echo "KernelSU main -> $(git -C KernelSU rev-parse HEAD)"
+          grep -E 'KSU_VERSION :=|KSU_VERSION_TAG :=' KernelSU/kernel/Makefile || true
+          git clone --depth=1 -b dev https://github.com/maxsteeel/nomount NoMount
+          test -e drivers/kernelsu/Makefile
+          test -e fs/nomount/Makefile || ls fs/nomount/
+
+      - name: Compilar
+        run: |
+          export PATH="$GITHUB_WORKSPACE/clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
+          export ARCH=arm64
+          export KBUILD_BUILD_USER=jhojansh
+          export KBUILD_BUILD_HOST=Reforge
+          export CFLAGS_EXTRA="-DBUILD_DATE=$BUILD_DATE"
+
+          make O=out ARCH=arm64 vendor/sweet_defconfig
+          scripts/kconfig/merge_config.sh -m -O out out/.config arch/arm64/configs/vendor/gaming_defconfig
+          make O=out ARCH=arm64 olddefconfig
+
+          # Verificacion: root presente y MGLRU fuera
+          for s in KSU KSU_TAMPER_SYSCALL_TABLE KSU_SUSFS; do
+            grep -q "^CONFIG_$s=y" out/.config || { echo "FALTA CONFIG_$s"; exit 1; }
+          done
+          if grep -q "^CONFIG_LRU_GEN=y" out/.config; then echo "MGLRU deberia estar compilado fuera"; exit 1; fi
+
+          make -j"$(nproc --all)" O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 CC=clang \
+            CLANG_TRIPLE="$GITHUB_WORKSPACE/clang/bin/aarch64-linux-gnu-" \
+            CROSS_COMPILE="$GITHUB_WORKSPACE/gcc64/bin/aarch64-elf-" \
+            CROSS_COMPILE_ARM32="$GITHUB_WORKSPACE/gcc32/bin/arm-none-eabi-"
+
+          cp out/.config out/sweet_gaming_config.txt
+
+      - name: Empaquetar AnyKernel3
+        run: |
+          git clone --depth=1 -b reforge https://github.com/manipvlator/Anykernel3.git AnyKernel3
+          cp out/arch/arm64/boot/{Image.gz,dtbo.img,dtb.img} AnyKernel3/
+          ZIP="Reforge-KSU-AOSP-Gaming-${BUILD_TIME}.zip"
+          (cd AnyKernel3 && zip -r9 "../$ZIP" . -x ".git/*" "README.md")
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: gaming-${{ env.BUILD_TIME }}
+          target_commitish: ${{ github.sha }}
+          name: Reforge-KSU • AOSP-Gaming (${{ env.BUILD_TIME }})
+          body: |
+            **Reforge-KSU — Edición AOSP-Gaming**
+
+            Base AGNI Reborn 2.1 (kernel 4.14) para Redmi Note 10 Pro (sweet).
+            Incluye: KernelSU-Next + SUSFS 2.4.0, NoMount, MGLRU desactivado (fix
+            del PSI fantasma / cuelgues). SIN NetHunter ni DroidSpaces: más liviana,
+            menos drivers y menos capas de cgroup/netfilter.
+
+            Variante para uso diario + gaming (root sí, contenedores no).
+            Flashear con adb sideload desde el recovery. Manager: KernelSU-Next.
+            Commit ${{ github.sha }}
+          files: |
+            ${{ env.ZIP }}

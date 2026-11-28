@@ -1,0 +1,15 @@
+# Reforge-KSU — Edición AOSP-Gaming
+# Variante liviana: root (KernelSU-Next + SUSFS) SIN NetHunter ni DroidSpaces.
+# Menos drivers y menos capas de cgroup/netfilter = menos cosas que puedan fallar
+# y un poco menos de overhead. Pensada para uso diario + gaming.
+
+# KernelSU-Next + SUSFS (igual que la NH-DS)
+CONFIG_KSU=y
+CONFIG_KSU_TAMPER_SYSCALL_TABLE=y
+CONFIG_KSU_SUSFS=y
+
+# MGLRU fuera (mismo fix del PSI fantasma / cuelgues que la NH-DS):
+# con MGLRU compilado, sus contadores corrompían el PSI -> presión de memoria
+# falsa -> lmkd mataba apps y el reclamo se trababa en livelock. Compilado fuera,
+# el LRU clásico corre limpio.
+# CONFIG_LRU_GEN is not set
