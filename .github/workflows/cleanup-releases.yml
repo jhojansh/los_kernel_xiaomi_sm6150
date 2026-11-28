@@ -1,0 +1,22 @@
+name: Cleanup old releases
+on:
+  workflow_dispatch:
+  push:
+    branches: [cleanup-run]
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Borrar releases viejos (conservar los 3 keepers)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          for tag in build-22112026-1149 build-21112026-0240 build-02112026-2039 \
+                     build-28102026-1009 build-17102026-0157 build-16102026-2322 \
+                     build-16102026-1452 build-09102026-0113 build-06102026-1303 \
+                     build-06102026-0125 build-04102026-0355 build-30092026-1313; do
+            gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag && echo "DEL $tag" || echo "skip $tag"
+          done
